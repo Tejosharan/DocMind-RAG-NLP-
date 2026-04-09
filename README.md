@@ -6,4 +6,4 @@ NLP Analysis tab — Named Entity Recognition (persons, orgs, locations, technol
 Vector Store tab — shows all document chunks with similarity scores highlighted after retrieval
 File upload — drag and drop any .txt file and it gets chunked and indexed live
 
-Keywords HR will see: RAG, Vector Search, Embeddings, NLP, NER, Sentiment Analysis, Chunking, Cosine Similarity
+Keywords: RAG, Vector Search, Embeddings, NLP, NER, Sentiment Analysis, Chunking, Cosine Similarity
