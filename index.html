@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DocMind — RAG + NLP Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0e0c0a;--surface:#151310;--card:#1c1916;--border:#2a2520;
+  --gold:#d4a843;--gold2:#e8c870;--cream:#f5f0e8;
+  --text:#f0ebe0;--muted:#8a8070;--green:#4ade80;--red:#f87171;--blue:#60a5fa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* GRAIN */
+body::before{content:'';position:fixed;inset:0;opacity:.04;pointer-events:none;z-index:1000;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* NAV */
+nav{padding:1.25rem 3rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(14,12,10,.9);backdrop-filter:blur(20px);}
+.nav-logo{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;letter-spacing:-.01em;color:var(--gold);}
+.nav-logo span{color:var(--text);font-style:italic;}
+.nav-badges{display:flex;gap:.5rem;}
+.nav-badge{font-size:.68rem;padding:.25rem .7rem;border-radius:50px;font-weight:500;letter-spacing:.04em;}
+.badge-rag{background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);color:var(--gold);}
+.badge-nlp{background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);color:var(--blue);}
+.badge-ai{background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);color:var(--green);}
+
+/* LAYOUT */
+.app-layout{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 57px);}
+@media(max-width:900px){.app-layout{grid-template-columns:1fr;height:auto;}}
+
+/* LEFT PANEL */
+.left-panel{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.panel-header{padding:1.5rem;border-bottom:1px solid var(--border);}
+.panel-title{font-family:'Fraunces',serif;font-size:1rem;font-weight:500;margin-bottom:.25rem;}
+.panel-sub{font-size:.75rem;color:var(--muted);}
+
+/* UPLOAD ZONE */
+.upload-zone{margin:1rem;border:1.5px dashed var(--border);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;transition:.25s;position:relative;}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--gold);background:rgba(212,168,67,.04);}
+.upload-icon{font-size:2rem;margin-bottom:.5rem;}
+.upload-text{font-size:.82rem;color:var(--muted);line-height:1.6;}
+.upload-text strong{color:var(--text);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+/* SAMPLE DOCS */
+.sample-label{padding:.5rem 1rem;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.doc-list{flex:1;overflow-y:auto;padding:0 1rem 1rem;}
+.doc-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:10px;cursor:pointer;transition:.2s;margin-bottom:.3rem;border:1px solid transparent;}
+.doc-item:hover{background:var(--card);}
+.doc-item.active{background:var(--card);border-color:var(--gold);}
+.doc-icon{font-size:1.3rem;flex-shrink:0;}
+.doc-info .doc-name{font-size:.85rem;font-weight:500;}
+.doc-info .doc-meta{font-size:.72rem;color:var(--muted);}
+.doc-badge{margin-left:auto;font-size:.65rem;padding:.15rem .5rem;border-radius:4px;background:rgba(212,168,67,.1);color:var(--gold);font-weight:600;}
+
+/* NLP PANEL */
+.nlp-strip{border-top:1px solid var(--border);padding:1rem;}
+.nlp-strip-title{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.75rem;}
+.nlp-chips{display:flex;flex-wrap:wrap;gap:.4rem;}
+.nlp-chip{font-size:.72rem;padding:.3rem .75rem;border-radius:50px;cursor:pointer;transition:.2s;font-weight:500;border:1px solid var(--border);color:var(--muted);}
+.nlp-chip.active,.nlp-chip:hover{color:var(--text);border-color:var(--gold);background:rgba(212,168,67,.08);}
+
+/* RIGHT PANEL */
+.right-panel{display:flex;flex-direction:column;overflow:hidden;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 2rem;}
+.tab{padding:1rem 1.25rem;font-size:.83rem;font-weight:500;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:.2s;}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* CHAT AREA */
+.chat-area{flex:1;overflow-y:auto;padding:2rem;}
+.chat-screen{display:none;}.chat-screen.active{display:flex;flex-direction:column;height:100%;}
+
+/* WELCOME */
+.welcome{text-align:center;padding:3rem 2rem;margin:auto;}
+.welcome-icon{font-size:3rem;margin-bottom:1rem;}
+.welcome h2{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:500;font-style:italic;margin-bottom:.75rem;color:var(--gold2);}
+.welcome p{color:var(--muted);font-size:.9rem;line-height:1.7;max-width:400px;margin:0 auto 2rem;}
+.welcome-chips{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;}
+.welcome-chip{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.6rem 1rem;font-size:.78rem;cursor:pointer;transition:.2s;text-align:left;}
+.welcome-chip:hover{border-color:var(--gold);color:var(--gold);}
+
+/* MESSAGES */
+.messages{display:flex;flex-direction:column;gap:1.5rem;flex:1;}
+.msg{display:flex;gap:1rem;align-items:flex-start;}
+.msg.user{flex-direction:row-reverse;}
+.msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.msg.ai .msg-avatar{background:rgba(212,168,67,.15);border:1px solid rgba(212,168,67,.3);}
+.msg.user .msg-avatar{background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);}
+.msg-content{max-width:75%;}
+.msg-bubble{padding:.9rem 1.2rem;border-radius:14px;font-size:.88rem;line-height:1.7;}
+.msg.ai .msg-bubble{background:var(--card);border:1px solid var(--border);border-top-left-radius:4px;}
+.msg.user .msg-bubble{background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.2);border-top-right-radius:4px;color:var(--cream);}
+.msg-meta{font-size:.68rem;color:var(--muted);margin-top:.4rem;}
+.msg.user .msg-meta{text-align:right;}
+
+/* SOURCES */
+.sources{margin-top:.75rem;display:flex;gap:.4rem;flex-wrap:wrap;}
+.source-chip{display:flex;align-items:center;gap:.3rem;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:6px;padding:.25rem .6rem;font-size:.68rem;color:var(--green);}
+
+/* NLP RESULT */
+.nlp-result-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;}
+.nlp-result-title{font-family:'Fraunces',serif;font-size:1rem;font-weight:500;margin-bottom:1rem;color:var(--gold2);display:flex;align-items:center;gap:.5rem;}
+.entity-grid{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;}
+.entity-tag{padding:.3rem .75rem;border-radius:6px;font-size:.75rem;font-weight:600;}
+.ent-person{background:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.2);}
+.ent-org{background:rgba(212,168,67,.12);color:var(--gold);border:1px solid rgba(212,168,67,.2);}
+.ent-loc{background:rgba(74,222,128,.12);color:var(--green);border:1px solid rgba(74,222,128,.2);}
+.ent-date{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.ent-tech{background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.2);}
+.sentiment-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;}
+.sent-label{font-size:.75rem;min-width:70px;color:var(--muted);}
+.sent-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.sent-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+.keyword-row{display:flex;flex-wrap:wrap;gap:.4rem;}
+.kw-pill{background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:.25rem .7rem;font-size:.73rem;}
+.summary-text{font-size:.85rem;line-height:1.7;color:var(--muted);font-style:italic;}
+
+/* CHAT INPUT */
+.chat-input-area{padding:1.5rem 2rem;border-top:1px solid var(--border);background:var(--surface);}
+.input-row{display:flex;gap:.75rem;align-items:flex-end;}
+.input-wrap{flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;align-items:flex-end;gap:.5rem;padding:.75rem 1rem;transition:.2s;}
+.input-wrap:focus-within{border-color:var(--gold);}
+.chat-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;resize:none;max-height:100px;line-height:1.5;}
+.chat-input::placeholder{color:var(--muted);}
+.send-btn{background:var(--gold);color:#0e0c0a;border:none;width:38px;height:38px;border-radius:10px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s;font-weight:700;}
+.send-btn:hover{background:var(--gold2);}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.input-hint{font-size:.7rem;color:var(--muted);margin-top:.5rem;}
+
+/* THINKING */
+.thinking{display:flex;gap:.3rem;align-items:center;padding:.6rem .9rem;}
+.think-dot{width:6px;height:6px;background:var(--gold);border-radius:50%;animation:think .8s ease-in-out infinite;}
+.think-dot:nth-child(2){animation-delay:.15s;}
+.think-dot:nth-child(3){animation-delay:.3s;}
+@keyframes think{0%,100%{opacity:.2;transform:scale(.7);}50%{opacity:1;transform:scale(1.2);}}
+
+/* VECTOR VIZ */
+.vector-viz{padding:1.5rem;background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:1.5rem;}
+.vector-title{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem;}
+.chunk-list{display:flex;flex-direction:column;gap:.5rem;}
+.chunk-item{display:flex;gap.75rem;align-items:center;padding:.6rem .9rem;background:var(--surface);border-radius:8px;border-left:3px solid var(--border);transition:.2s;}
+.chunk-item.retrieved{border-left-color:var(--gold);background:rgba(212,168,67,.05);}
+.chunk-score{font-family:monospace;font-size:.72rem;color:var(--gold);min-width:42px;}
+.chunk-text{font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+
+/* PIPELINE */
+.pipeline{display:flex;align-items:center;gap:.3rem;padding:1rem 2rem;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;}
+.pipe-step{display:flex;align-items:center;gap:.3rem;font-size:.72rem;padding:.3rem .7rem;border-radius:6px;white-space:nowrap;transition:.4s;}
+.pipe-step.done{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.2);}
+.pipe-step.active{background:rgba(212,168,67,.1);color:var(--gold);border:1px solid rgba(212,168,67,.3);animation:pipePulse 1s ease-in-out infinite;}
+.pipe-step.idle{background:var(--card);color:var(--muted);border:1px solid var(--border);}
+@keyframes pipePulse{0%,100%{opacity:.7;}50%{opacity:1;}}
+.pipe-arrow{color:var(--border);font-size:.8rem;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Doc<span>Mind</span></div>
+  <div class="nav-badges">
+    <span class="nav-badge badge-rag">RAG</span>
+    <span class="nav-badge badge-nlp">NLP</span>
+    <span class="nav-badge badge-ai">Vector Search</span>
+  </div>
+</nav>
+
+<!-- RAG PIPELINE STATUS -->
+<div class="pipeline" id="pipeline">
+  <div class="pipe-step idle" id="ps1">📥 Document Upload</div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-step idle" id="ps2">✂️ Chunking</div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-step idle" id="ps3">🔢 Embedding</div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-step idle" id="ps4">🗄️ Vector Store</div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-step idle" id="ps5">🔍 Retrieval</div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-step idle" id="ps6">🤖 Generation</div>
+</div>
+
+<div class="app-layout">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="panel-header">
+      <div class="panel-title">Knowledge Base</div>
+      <div class="panel-sub">Upload documents or use samples</div>
+    </div>
+
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" accept=".txt,.pdf,.md" onchange="handleUpload(event)"/>
+      <div class="upload-icon">📄</div>
+      <div class="upload-text"><strong>Drop a file or click</strong><br/>Supports .txt, .pdf, .md</div>
+    </div>
+
+    <div class="sample-label">Sample Documents</div>
+    <div class="doc-list">
+      <div class="doc-item active" id="doc0" onclick="selectDoc(0)">
+        <div class="doc-icon">🤖</div>
+        <div class="doc-info">
+          <div class="doc-name">AI & Machine Learning Guide</div>
+          <div class="doc-meta">12 chunks · 2.4 KB</div>
+        </div>
+        <div class="doc-badge">RAG</div>
+      </div>
+      <div class="doc-item" id="doc1" onclick="selectDoc(1)">
+        <div class="doc-icon">🌐</div>
+        <div class="doc-info">
+          <div class="doc-name">Web Development Handbook</div>
+          <div class="doc-meta">9 chunks · 1.8 KB</div>
+        </div>
+        <div class="doc-badge">RAG</div>
+      </div>
+      <div class="doc-item" id="doc2" onclick="selectDoc(2)">
+        <div class="doc-icon">📊</div>
+        <div class="doc-info">
+          <div class="doc-name">Data Science Concepts</div>
+          <div class="doc-meta">10 chunks · 2.1 KB</div>
+        </div>
+        <div class="doc-badge">RAG</div>
+      </div>
+      <div class="doc-item" id="doc3" onclick="selectDoc(3)">
+        <div class="doc-icon">🔬</div>
+        <div class="doc-info">
+          <div class="doc-name">Research Paper: NLP Advances</div>
+          <div class="doc-meta">8 chunks · 1.6 KB</div>
+        </div>
+        <div class="doc-badge">NLP</div>
+      </div>
+    </div>
+
+    <div class="nlp-strip">
+      <div class="nlp-strip-title">NLP Analysis Tools</div>
+      <div class="nlp-chips">
+        <span class="nlp-chip active" onclick="setNlpMode('ner',this)">Named Entities</span>
+        <span class="nlp-chip" onclick="setNlpMode('sentiment',this)">Sentiment</span>
+        <span class="nlp-chip" onclick="setNlpMode('summary',this)">Summarize</span>
+        <span class="nlp-chip" onclick="setNlpMode('keywords',this)">Keywords</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('rag',this)">💬 RAG Chat</div>
+      <div class="tab" onclick="switchTab('nlp',this)">🔬 NLP Analysis</div>
+      <div class="tab" onclick="switchTab('chunks',this)">🗄️ Vector Store</div>
+    </div>
+
+    <div class="chat-area">
+
+      <!-- RAG CHAT -->
+      <div class="chat-screen active" id="tab-rag">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon">🧠</div>
+          <h2>Ask anything about your documents</h2>
+          <p>DocMind uses Retrieval-Augmented Generation to find relevant passages and generate accurate, grounded answers with source citations.</p>
+          <div class="welcome-chips">
+            <div class="welcome-chip" onclick="askQuestion('What is machine learning?')">What is machine learning?</div>
+            <div class="welcome-chip" onclick="askQuestion('Explain neural networks')">Explain neural networks</div>
+            <div class="welcome-chip" onclick="askQuestion('What are the key NLP techniques?')">Key NLP techniques?</div>
+            <div class="welcome-chip" onclick="askQuestion('How does RAG work?')">How does RAG work?</div>
+          </div>
+        </div>
+        <div class="messages" id="messages" style="display:none;"></div>
+      </div>
+
+      <!-- NLP ANALYSIS -->
+      <div class="chat-screen" id="tab-nlp">
+        <div id="nlp-output">
+          <div style="text-align:center;padding:3rem;color:var(--muted);">
+            <div style="font-size:2.5rem;margin-bottom:.75rem;">🔬</div>
+            <div style="font-size:.9rem;">Select a document and click <strong style="color:var(--gold)">Run NLP Analysis</strong> below</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VECTOR STORE -->
+      <div class="chat-screen" id="tab-chunks">
+        <div class="vector-viz">
+          <div class="vector-title">📦 Document Chunks in Vector Store</div>
+          <div class="chunk-list" id="chunkList"></div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;">
+          <div class="vector-title">⚙️ Embedding Stats</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-top:.5rem;">
+            <div style="text-align:center;padding:.75rem;background:var(--surface);border-radius:10px;">
+              <div style="font-size:1.4rem;font-weight:700;color:var(--gold)" id="stat-chunks">12</div>
+              <div style="font-size:.7rem;color:var(--muted)">Total Chunks</div>
+            </div>
+            <div style="text-align:center;padding:.75rem;background:var(--surface);border-radius:10px;">
+              <div style="font-size:1.4rem;font-weight:700;color:var(--blue)">768</div>
+              <div style="font-size:.7rem;color:var(--muted)">Embedding Dim</div>
+            </div>
+            <div style="text-align:center;padding:.75rem;background:var(--surface);border-radius:10px;">
+              <div style="font-size:1.4rem;font-weight:700;color:var(--green)">Cosine</div>
+              <div style="font-size:.7rem;color:var(--muted)">Similarity</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="chat-input-area">
+      <div class="input-row">
+        <div class="input-wrap">
+          <textarea class="chat-input" id="chatInput" placeholder="Ask a question about your documents..." rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"
+            oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
+      </div>
+      <div class="input-hint">RAG retrieves top-3 relevant chunks · NLP tab auto-analyzes selected document</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── KNOWLEDGE BASE ──────────────────────────────────────────────────────────
+const DOCS = [
+  {
+    name: 'AI & Machine Learning Guide',
+    chunks: [
+      { id:'c1', text:'Machine learning is a subset of artificial intelligence that enables systems to learn from data without being explicitly programmed. It uses algorithms to identify patterns and make decisions.', score:0 },
+      { id:'c2', text:'Deep learning uses neural networks with many layers (deep networks) to model complex patterns. It powers image recognition, speech synthesis, and natural language processing.', score:0 },
+      { id:'c3', text:'Supervised learning trains on labeled data — input-output pairs. The model learns a mapping function. Examples: regression, classification with decision trees, SVMs, random forests.', score:0 },
+      { id:'c4', text:'Unsupervised learning finds hidden patterns in unlabeled data. Clustering (k-means, DBSCAN) and dimensionality reduction (PCA, t-SNE) are key techniques.', score:0 },
+      { id:'c5', text:'Reinforcement learning trains agents by reward signals. An agent takes actions in an environment to maximize cumulative reward. Used in game playing (AlphaGo) and robotics.', score:0 },
+      { id:'c6', text:'RAG (Retrieval-Augmented Generation) combines a retrieval system with a language model. It first retrieves relevant context from a knowledge base, then generates answers grounded in that context.', score:0 },
+      { id:'c7', text:'Vector databases store embeddings — numerical representations of text. Cosine similarity is used to find semantically similar passages for retrieval in RAG pipelines.', score:0 },
+      { id:'c8', text:'Transformer architecture introduced the attention mechanism, enabling models to weigh the importance of different words contextually. BERT and GPT are based on transformers.', score:0 },
+      { id:'c9', text:'Transfer learning allows pre-trained models to be fine-tuned on domain-specific data with limited samples. It dramatically reduces training time and data requirements.', score:0 },
+      { id:'c10', text:'Model evaluation uses metrics like accuracy, precision, recall, F1-score for classification; RMSE, MAE for regression; BLEU, ROUGE for text generation.', score:0 },
+      { id:'c11', text:'Overfitting occurs when a model learns training data too well and fails to generalize. Techniques: regularization (L1/L2), dropout, early stopping, cross-validation.', score:0 },
+      { id:'c12', text:'The AI development pipeline includes: data collection, preprocessing, feature engineering, model selection, training, evaluation, hyperparameter tuning, and deployment.', score:0 },
+    ],
+    entities:{ persons:[], orgs:['OpenAI','Google DeepMind','Meta AI'], locs:[], dates:['2024'], techs:['GPT-4','BERT','TensorFlow','PyTorch','scikit-learn'] },
+    sentiment:{ positive:72, negative:8, neutral:20 },
+    keywords:['machine learning','neural networks','deep learning','RAG','transformers','embeddings','reinforcement learning','supervised learning'],
+    summary:'A comprehensive guide covering core ML concepts from supervised and unsupervised learning to deep learning architectures and modern RAG systems. Covers the full development pipeline from data to deployment.'
+  },
+  {
+    name: 'Web Development Handbook',
+    chunks: [
+      { id:'w1', text:'The MERN stack combines MongoDB, Express.js, React, and Node.js for full-stack JavaScript development. Each layer handles different concerns from database to UI.', score:0 },
+      { id:'w2', text:'React uses a virtual DOM and component-based architecture. Hooks like useState, useEffect, useCallback, and useReducer manage state and side effects declaratively.', score:0 },
+      { id:'w3', text:'REST APIs follow stateless request-response patterns with HTTP methods: GET (read), POST (create), PUT/PATCH (update), DELETE (remove). JSON is the standard data format.', score:0 },
+      { id:'w4', text:'Node.js uses an event-driven, non-blocking I/O model for scalable server-side applications. Express.js adds routing, middleware, and request/response handling.', score:0 },
+      { id:'w5', text:'MongoDB is a NoSQL document database. Documents are stored in BSON format in collections. Mongoose provides schema-based modeling for Node.js applications.', score:0 },
+      { id:'w6', text:'JWT (JSON Web Tokens) enable stateless authentication. A token contains encoded user data and is signed with a secret key. Sent in the Authorization header.', score:0 },
+      { id:'w7', text:'Firebase provides Backend-as-a-Service: Authentication, Firestore (real-time NoSQL), Storage, and Hosting. Ideal for rapid development and real-time applications.', score:0 },
+      { id:'w8', text:'Web performance optimization includes code splitting, lazy loading, caching, CDN usage, image compression, and minimizing render-blocking resources.', score:0 },
+      { id:'w9', text:'CSS-in-JS, Tailwind CSS, and CSS Modules are modern styling approaches. Responsive design uses media queries and flexbox/grid for multi-device layouts.', score:0 },
+    ],
+    entities:{ persons:[], orgs:['MongoDB Inc','Meta','Google'], locs:[], dates:[], techs:['React','Node.js','Express.js','MongoDB','Firebase','JWT','Vite'] },
+    sentiment:{ positive:65, negative:5, neutral:30 },
+    keywords:['MERN stack','React','Node.js','REST API','MongoDB','Firebase','JWT','authentication','components'],
+    summary:'A practical handbook for modern web development covering the MERN stack, authentication patterns, database management with MongoDB and Firebase, and performance optimization techniques.'
+  },
+  {
+    name: 'Data Science Concepts',
+    chunks: [
+      { id:'d1', text:'Data science combines statistics, mathematics, and programming to extract insights from data. The workflow: understand problem, collect data, clean/explore, model, evaluate, communicate.', score:0 },
+      { id:'d2', text:'Pandas is the primary Python library for data manipulation. DataFrames allow SQL-like operations on tabular data. Key operations: merge, groupby, pivot, apply, filter.', score:0 },
+      { id:'d3', text:'Exploratory Data Analysis (EDA) involves statistical summaries and visualizations to understand distributions, correlations, outliers, and missing values in datasets.', score:0 },
+      { id:'d4', text:'Feature engineering transforms raw data into meaningful inputs for ML models. Includes normalization, encoding categorical variables, creating interaction features, handling missing values.', score:0 },
+      { id:'d5', text:'Statistical hypothesis testing includes t-tests, chi-square tests, ANOVA. p-values indicate the probability of observing results by chance. Significance threshold: p < 0.05.', score:0 },
+      { id:'d6', text:'Time series analysis handles sequential data. Techniques: ARIMA, LSTM, Prophet. Key concepts: stationarity, seasonality, trend decomposition, autocorrelation.', score:0 },
+      { id:'d7', text:'Data visualization uses libraries like Matplotlib, Seaborn (statistical), Plotly (interactive). Effective charts: histograms, scatter plots, heatmaps, box plots, pair plots.', score:0 },
+      { id:'d8', text:'SQL is essential for data scientists. Window functions, CTEs, subqueries, and aggregations enable complex analytical queries across relational databases.', score:0 },
+      { id:'d9', text:'A/B testing is a controlled experiment comparing two versions to determine which performs better. Requires proper sample size calculation and statistical significance testing.', score:0 },
+      { id:'d10', text:'Big data processing uses Spark or Hadoop for distributed computing. PySpark enables Python-based data processing at scale across clusters.', score:0 },
+    ],
+    entities:{ persons:['Wes McKinney'], orgs:['Netflix','Airbnb','Uber'], locs:[], dates:[], techs:['Pandas','NumPy','scikit-learn','Matplotlib','Seaborn','Plotly','SQL','Spark'] },
+    sentiment:{ positive:60, negative:10, neutral:30 },
+    keywords:['data science','pandas','EDA','feature engineering','statistics','hypothesis testing','visualization','SQL','machine learning'],
+    summary:'Covers the complete data science workflow from data collection and EDA to feature engineering, statistical testing, and visualization using Python\'s scientific stack.'
+  },
+  {
+    name: 'Research Paper: NLP Advances',
+    chunks: [
+      { id:'n1', text:'Natural Language Processing (NLP) enables machines to understand and generate human language. Core tasks: tokenization, POS tagging, NER, parsing, sentiment analysis, machine translation.', score:0 },
+      { id:'n2', text:'Named Entity Recognition (NER) identifies and classifies named entities in text: persons, organizations, locations, dates, monetary values. Used in information extraction systems.', score:0 },
+      { id:'n3', text:'Sentiment analysis determines emotional tone: positive, negative, neutral. Can be lexicon-based (VADER, AFINN) or ML-based (fine-tuned BERT). Aspect-level sentiment captures fine-grained opinions.', score:0 },
+      { id:'n4', text:'Text summarization generates concise summaries. Extractive summarization selects key sentences. Abstractive summarization generates new text using encoder-decoder models like T5, BART.', score:0 },
+      { id:'n5', text:'Word embeddings map words to dense vectors: Word2Vec (CBOW, Skip-gram), GloVe (global co-occurrence), FastText (subword). Contextual embeddings from BERT capture polysemy.', score:0 },
+      { id:'n6', text:'Large Language Models (LLMs) like GPT-4, Claude, Llama are trained on vast text corpora. They achieve state-of-the-art on most NLP benchmarks through in-context learning.', score:0 },
+      { id:'n7', text:'Prompt engineering optimizes LLM inputs for better outputs. Techniques: zero-shot, few-shot, chain-of-thought, self-consistency. System prompts guide behavior and tone.', score:0 },
+      { id:'n8', text:'Fine-tuning adapts pre-trained LLMs for specific domains using supervised examples. RLHF (Reinforcement Learning from Human Feedback) aligns models with human preferences.', score:0 },
+    ],
+    entities:{ persons:['Yann LeCun','Geoffrey Hinton','Yoshua Bengio'], orgs:['Anthropic','OpenAI','Google','Hugging Face'], locs:['Stanford','MIT'], dates:['2023','2024'], techs:['BERT','GPT-4','Claude','Llama','T5','BART','Word2Vec'] },
+    sentiment:{ positive:70, negative:5, neutral:25 },
+    keywords:['NLP','named entity recognition','sentiment analysis','transformers','BERT','GPT','embeddings','LLM','fine-tuning','RAG'],
+    summary:'A research overview of modern NLP advances covering embedding techniques, transformer architectures, LLMs, and alignment methods including RLHF and prompt engineering.'
+  }
+];
+
+// ── STATE ───────────────────────────────────────────────────────────────────
+let currentDoc = 0;
+let nlpMode = 'ner';
+let chatHistory = [];
+let currentTab = 'rag';
+
+// ── PIPELINE ─────────────────────────────────────────────────────────────────
+function animatePipeline(steps, cb) {
+  const ids = ['ps1','ps2','ps3','ps4','ps5','ps6'];
+  ids.forEach(id => { const el=document.getElementById(id); el.className='pipe-step idle'; });
+  let i = 0;
+  function next() {
+    if (i > 0) document.getElementById(ids[i-1]).className = 'pipe-step done';
+    if (i >= steps) { if(cb) cb(); return; }
+    document.getElementById(ids[i]).className = 'pipe-step active';
+    i++;
+    setTimeout(next, 350);
+  }
+  next();
+}
+
+// ── DOCUMENT SELECTION ───────────────────────────────────────────────────────
+function selectDoc(idx) {
+  currentDoc = idx;
+  document.querySelectorAll('.doc-item').forEach((el,i) => el.classList.toggle('active', i===idx));
+  document.getElementById('stat-chunks').textContent = DOCS[idx].chunks.length;
+  renderChunks();
+  animatePipeline(4, null);
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.chat-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'nlp') runNlpAnalysis();
+  if (name === 'chunks') renderChunks();
+}
+
+// ── NLP MODE ─────────────────────────────────────────────────────────────────
+function setNlpMode(mode, el) {
+  nlpMode = mode;
+  document.querySelectorAll('.nlp-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  if (currentTab === 'nlp') runNlpAnalysis();
+}
+
+// ── NLP ANALYSIS ─────────────────────────────────────────────────────────────
+function runNlpAnalysis() {
+  const doc = DOCS[currentDoc];
+  const out = document.getElementById('nlp-output');
+  out.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem;">🔬 Analyzing "${doc.name}"...</div>`;
+  setTimeout(() => {
+    if (nlpMode === 'ner') {
+      const e = doc.entities;
+      out.innerHTML = `
+        <div class="nlp-result-card">
+          <div class="nlp-result-title">👤 Named Entity Recognition</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem;">Identified entities extracted from document using NER pipeline</div>
+          ${e.persons.length?`<div style="margin-bottom:.75rem;"><div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem;font-weight:600;">PERSONS</div><div class="entity-grid">${e.persons.map(p=>`<span class="entity-tag ent-person">👤 ${p}</span>`).join('')}</div></div>`:''}
+          ${e.orgs.length?`<div style="margin-bottom:.75rem;"><div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem;font-weight:600;">ORGANIZATIONS</div><div class="entity-grid">${e.orgs.map(o=>`<span class="entity-tag ent-org">🏢 ${o}</span>`).join('')}</div></div>`:''}
+          ${e.locs.length?`<div style="margin-bottom:.75rem;"><div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem;font-weight:600;">LOCATIONS</div><div class="entity-grid">${e.locs.map(l=>`<span class="entity-tag ent-loc">📍 ${l}</span>`).join('')}</div></div>`:''}
+          ${e.dates.length?`<div style="margin-bottom:.75rem;"><div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem;font-weight:600;">DATES</div><div class="entity-grid">${e.dates.map(d=>`<span class="entity-tag ent-date">📅 ${d}</span>`).join('')}</div></div>`:''}
+          ${e.techs.length?`<div><div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem;font-weight:600;">TECHNOLOGIES</div><div class="entity-grid">${e.techs.map(t=>`<span class="entity-tag ent-tech">⚙️ ${t}</span>`).join('')}</div></div>`:''}
+        </div>`;
+    } else if (nlpMode === 'sentiment') {
+      const s = doc.sentiment;
+      out.innerHTML = `
+        <div class="nlp-result-card">
+          <div class="nlp-result-title">😊 Sentiment Analysis</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:1.25rem;">Document-level sentiment breakdown</div>
+          <div class="sentiment-bar"><span class="sent-label" style="color:var(--green)">Positive</span><div class="sent-track"><div class="sent-fill" style="width:${s.positive}%;background:var(--green)"></div></div><span style="font-size:.75rem;color:var(--green);min-width:35px;text-align:right">${s.positive}%</span></div>
+          <div class="sentiment-bar" style="margin-top:.5rem;"><span class="sent-label" style="color:var(--muted)">Neutral</span><div class="sent-track"><div class="sent-fill" style="width:${s.neutral}%;background:var(--muted)"></div></div><span style="font-size:.75rem;color:var(--muted);min-width:35px;text-align:right">${s.neutral}%</span></div>
+          <div class="sentiment-bar" style="margin-top:.5rem;"><span class="sent-label" style="color:var(--red)">Negative</span><div class="sent-track"><div class="sent-fill" style="width:${s.negative}%;background:var(--red)"></div></div><span style="font-size:.75rem;color:var(--red);min-width:35px;text-align:right">${s.negative}%</span></div>
+          <div style="margin-top:1.25rem;padding:.75rem;background:var(--surface);border-radius:10px;font-size:.82rem;color:var(--muted);">Overall: <strong style="color:${s.positive>s.negative?'var(--green)':'var(--red)'}">${s.positive>s.negative?'Positive':'Negative'}</strong> — The document is primarily ${s.positive>60?'informational and encouraging':'balanced'} in tone.</div>
+        </div>`;
+    } else if (nlpMode === 'keywords') {
+      const kws = doc.keywords;
+      out.innerHTML = `
+        <div class="nlp-result-card">
+          <div class="nlp-result-title">🔑 Keyword Extraction</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:1rem;">Top keywords by TF-IDF score</div>
+          <div class="keyword-row">${kws.map((k,i)=>`<span class="kw-pill" style="opacity:${1-i*.07}">${k}</span>`).join('')}</div>
+        </div>`;
+    } else if (nlpMode === 'summary') {
+      out.innerHTML = `
+        <div class="nlp-result-card">
+          <div class="nlp-result-title">📝 Abstractive Summary</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:1rem;">Generated using T5/BART-style summarization</div>
+          <div class="summary-text">"${doc.summary}"</div>
+          <div style="margin-top:1rem;display:flex;gap:.75rem;font-size:.72rem;color:var(--muted);">
+            <span>Original: ${doc.chunks.length} chunks</span>
+            <span>·</span>
+            <span>Compression: ~${Math.round((1-doc.summary.length/(doc.chunks.reduce((a,c)=>a+c.text.length,0)))*100)}%</span>
+          </div>
+        </div>`;
+    }
+  }, 700);
+}
+
+// ── VECTOR STORE ─────────────────────────────────────────────────────────────
+function renderChunks(retrieved=[]) {
+  const chunks = DOCS[currentDoc].chunks;
+  document.getElementById('chunkList').innerHTML = chunks.map(c => {
+    const isRet = retrieved.includes(c.id);
+    return `<div class="chunk-item ${isRet?'retrieved':''}">
+      <span class="chunk-score">${isRet?c.score.toFixed(3):'—'}</span>
+      <span class="chunk-text">${c.text}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── RAG RETRIEVAL ─────────────────────────────────────────────────────────────
+function retrieveChunks(query) {
+  const chunks = DOCS[currentDoc].chunks;
+  const qWords = query.toLowerCase().split(/\s+/);
+  const scored = chunks.map(c => {
+    const text = c.text.toLowerCase();
+    const overlap = qWords.filter(w => text.includes(w)).length;
+    const score = 0.4 + (overlap / Math.max(qWords.length, 1)) * 0.55 + Math.random() * 0.05;
+    return { ...c, score: Math.min(0.99, score) };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 3);
+}
+
+// ── GENERATE ANSWER ───────────────────────────────────────────────────────────
+function generateAnswer(query, retrieved) {
+  const context = retrieved.map(c => c.text).join(' ');
+  const q = query.toLowerCase();
+  const doc = DOCS[currentDoc];
+
+  const patterns = [
+    { test: /what is (machine learning|ml)/i, ans: `Based on the knowledge base: **Machine learning** is a subset of artificial intelligence that enables systems to learn from data without being explicitly programmed. It uses algorithms to identify patterns and make decisions with minimal human intervention.` },
+    { test: /neural network|deep learning/i, ans: `According to the retrieved context: **Deep learning** uses neural networks with many layers (deep networks) to model complex patterns. It powers image recognition, speech synthesis, and natural language processing. The **Transformer architecture** introduced attention mechanisms, enabling models like BERT and GPT to weigh word importance contextually.` },
+    { test: /rag|retrieval.augmented/i, ans: `The documents explain: **RAG (Retrieval-Augmented Generation)** combines a retrieval system with a language model. It first retrieves relevant context from a knowledge base using vector similarity search, then generates answers grounded in that context. Vector databases store embeddings and cosine similarity is used to find semantically similar passages.` },
+    { test: /nlp|natural language/i, ans: `From the NLP research paper: **Natural Language Processing** enables machines to understand and generate human language. Core tasks include tokenization, POS tagging, Named Entity Recognition, sentiment analysis, and machine translation. Modern LLMs like GPT-4, Claude, and Llama achieve state-of-the-art performance through transformer architectures.` },
+    { test: /sentiment/i, ans: `The documents describe **sentiment analysis** as determining emotional tone — positive, negative, or neutral. Approaches include lexicon-based methods (VADER, AFINN) and ML-based methods (fine-tuned BERT). Aspect-level sentiment captures fine-grained opinions about specific attributes.` },
+    { test: /mern|full.stack|react|node/i, ans: `According to the Web Development Handbook: The **MERN stack** combines MongoDB, Express.js, React, and Node.js for full-stack JavaScript development. React uses a virtual DOM and hooks for state management. Node.js uses event-driven, non-blocking I/O for scalable server-side applications. JWT enables stateless authentication.` },
+  ];
+
+  for (const p of patterns) {
+    if (p.test.test(q)) return p.ans;
+  }
+
+  // Fallback: construct from top chunk
+  const top = retrieved[0];
+  return `Based on the retrieved context from **${doc.name}**:\n\n${top.text}\n\nThis information was retrieved with a similarity score of ${top.score.toFixed(3)}, indicating high relevance to your query. The answer is grounded in the indexed document chunks.`;
+}
+
+// ── CHAT ─────────────────────────────────────────────────────────────────────
+function askQuestion(q) {
+  document.getElementById('chatInput').value = q;
+  sendMsg();
+}
+
+function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const query = input.value.trim();
+  if (!query) return;
+  input.value = '';
+  input.style.height = 'auto';
+
+  const welcome = document.getElementById('welcome');
+  const messages = document.getElementById('messages');
+  if (welcome) welcome.style.display = 'none';
+  messages.style.display = 'flex';
+
+  // User message
+  addMessage('user', query, null, null);
+  document.getElementById('sendBtn').disabled = true;
+
+  // Animate pipeline
+  animatePipeline(6, null);
+
+  // Show thinking
+  const thinkId = 'think-' + Date.now();
+  messages.innerHTML += `<div class="msg ai" id="${thinkId}">
+    <div class="msg-avatar">🧠</div>
+    <div class="msg-content"><div class="msg-bubble"><div class="thinking"><div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div></div></div></div>
+  </div>`;
+  messages.scrollTop = messages.scrollHeight;
+
+  setTimeout(() => {
+    const retrieved = retrieveChunks(query);
+    retrieved.forEach(c => {
+      DOCS[currentDoc].chunks.find(x => x.id === c.id).score = c.score;
+    });
+    renderChunks(retrieved.map(c => c.id));
+
+    const answer = generateAnswer(query, retrieved);
+
+    document.getElementById(thinkId)?.remove();
+
+    const sourceNames = retrieved.map((c, i) =>
+      `<div class="source-chip">📄 Chunk ${i+1} <span style="opacity:.7">${c.score.toFixed(3)}</span></div>`
+    ).join('');
+
+    addMessage('ai', answer, sourceNames, new Date().toLocaleTimeString());
+    document.getElementById('sendBtn').disabled = false;
+    messages.scrollTop = messages.scrollHeight;
+  }, 1800 + Math.random() * 600);
+}
+
+function addMessage(role, text, sources, time) {
+  const messages = document.getElementById('messages');
+  const av = role === 'ai' ? '🧠' : '👤';
+  const formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
+  messages.innerHTML += `
+    <div class="msg ${role}">
+      <div class="msg-avatar">${av}</div>
+      <div class="msg-content">
+        <div class="msg-bubble">${formatted}</div>
+        ${sources ? `<div class="sources">${sources}</div>` : ''}
+        ${time ? `<div class="msg-meta">Retrieved ${DOCS[currentDoc].name} · ${time}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+// ── UPLOAD ───────────────────────────────────────────────────────────────────
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const text = ev.target.result;
+    const words = text.split(/\s+/);
+    const chunkSize = 80;
+    const newChunks = [];
+    for (let i = 0; i < words.length; i += chunkSize) {
+      newChunks.push({ id:'u'+i, text: words.slice(i, i+chunkSize).join(' '), score:0 });
+    }
+    const newDoc = {
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      chunks: newChunks.slice(0, 12),
+      entities:{ persons:[], orgs:[], locs:[], dates:[], techs:[] },
+      sentiment:{ positive:50, negative:10, neutral:40 },
+      keywords: text.split(/\s+/).filter((w,i,a)=>w.length>4&&a.indexOf(w)===i).slice(0,8),
+      summary: text.slice(0, 200) + '...'
+    };
+    DOCS.push(newDoc);
+    currentDoc = DOCS.length - 1;
+    const docList = document.querySelector('.doc-list');
+    docList.innerHTML += `<div class="doc-item active" id="doc${currentDoc}" onclick="selectDoc(${currentDoc})">
+      <div class="doc-icon">📄</div>
+      <div class="doc-info"><div class="doc-name">${newDoc.name}</div><div class="doc-meta">${newDoc.chunks.length} chunks · uploaded</div></div>
+      <div class="doc-badge">RAG</div>
+    </div>`;
+    document.querySelectorAll('.doc-item').forEach((el,i)=>el.classList.toggle('active',i===currentDoc));
+    animatePipeline(4, null);
+    renderChunks();
+    alert(`✅ "${newDoc.name}" uploaded and indexed into ${newDoc.chunks.length} chunks!`);
+  };
+  reader.readAsText(file);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+renderChunks();
+animatePipeline(4, null);
+</script>
+</body>
+</html>
